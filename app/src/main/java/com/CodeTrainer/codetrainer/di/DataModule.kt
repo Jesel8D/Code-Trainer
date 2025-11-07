@@ -1,0 +1,93 @@
+package com.CodeTrainer.codetrainer.di
+
+import android.content.Context
+import androidx.room.Room
+import com.CodeTrainer.codetrainer.data.local.AppDatabase
+import com.CodeTrainer.codetrainer.data.local.dao.ExerciseDao
+import com.CodeTrainer.codetrainer.data.local.dao.ProgressDao
+import com.CodeTrainer.codetrainer.data.local.dao.StatsDao
+import com.CodeTrainer.codetrainer.data.local.dao.TipDao
+import com.CodeTrainer.codetrainer.data.repository.ExerciseRepositoryImpl
+import com.CodeTrainer.codetrainer.data.repository.StatsRepositoryImpl
+import com.CodeTrainer.codetrainer.data.repository.TipRepositoryImpl
+import com.CodeTrainer.codetrainer.domain.repository.ExerciseRepository
+import com.CodeTrainer.codetrainer.domain.repository.StatsRepository
+import com.CodeTrainer.codetrainer.domain.repository.TipRepository
+import dagger.Binds
+import dagger.Module
+import dagger.Provides
+import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
+import dagger.hilt.components.SingletonComponent
+import javax.inject.Singleton
+
+@Module
+@InstallIn(SingletonComponent::class)
+object DataModule { // <-- CAMBIA ESTO A "object" si era "class"
+
+    // ... tus @Provides para AppDatabase y DAOs ...
+    // (Estos no cambian, ya están perfectos)
+
+    @Provides
+    @Singleton
+    fun provideAppDatabase(
+        @ApplicationContext context: Context
+    ): AppDatabase {
+        return Room.databaseBuilder(
+            context,
+            AppDatabase::class.java,
+            "codetrainer_db"
+        )
+            .build()
+    }
+
+    @Provides
+    @Singleton
+    fun provideExerciseDao(db: AppDatabase): ExerciseDao {
+        return db.exerciseDao()
+    }
+
+    // ... (el resto de tus DAOs) ...
+    @Provides
+    @Singleton
+    fun provideProgressDao(db: AppDatabase): ProgressDao {
+        return db.progressDao()
+    }
+
+    @Provides
+    @Singleton
+    fun provideStatsDao(db: AppDatabase): StatsDao {
+        return db.statsDao()
+    }
+
+    @Provides
+    @Singleton
+    fun provideTipDao(db: AppDatabase): TipDao {
+        return db.tipDao()
+    }
+}
+
+// --- ¡¡LO NUEVO VA AQUÍ!! ---
+// Un módulo separado para los "Bindings" es más limpio.
+@Module
+@InstallIn(SingletonComponent::class)
+abstract class RepositoryModule {
+
+    @Binds
+    @Singleton
+    abstract fun bindExerciseRepository(
+        exerciseRepositoryImpl: ExerciseRepositoryImpl
+    ): ExerciseRepository // <-- Hilt ahora sabe que Impl provee a Interface
+
+    @Binds
+    @Singleton
+    abstract fun bindStatsRepository(
+        statsRepositoryImpl: StatsRepositoryImpl
+    ): StatsRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindTipRepository(
+        tipRepositoryImpl: TipRepositoryImpl
+    ): TipRepository
+}

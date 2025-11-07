@@ -8,11 +8,11 @@ plugins {
 }
 
 android {
-    namespace = "com.example.codetrainer" // Nombre del nuevo proyecto
+    namespace = "com.CodeTrainer.codetrainer"
     compileSdk = 34 // 2. SDK estable
 
     defaultConfig {
-        applicationId = "com.example.codetrainer"
+        applicationId = "com.CodeTrainer.codetrainer"
         minSdk = 29
         targetSdk = 34 // 3. SDK estable
         versionCode = 1

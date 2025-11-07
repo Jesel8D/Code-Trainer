@@ -1,25 +1,22 @@
 [versions]
 # --- Versiones del Proyecto ---
-# 1. AGP actualizado a una versión estable conocida
 agp = "8.4.1"
 kotlin = "2.0.0"
-ksp = "2.0.0-1.0.21" # Tu versión es correcta para Kotlin 2.0.0
-# 2. Versión de Hilt
+ksp = "2.0.0-1.0.21"
 hilt = "2.51.1"
 
-# --- Versiones de Librerías ---
-activityCompose = "1.11.0"
+# --- Versiones de Librerías (CORREGIDAS) ---
+# Bajamos las versiones a las últimas estables compatibles con compileSdk 34
+activityCompose = "1.9.0"         # Bajado de 1.11.0
 coil = "2.6.0"
-composeBom = "2024.09.00"
-coreKtx = "1.17.0"
-datastorePreferences = "1.1.7"
-espressoCore = "3.7.0"
+composeBom = "2024.06.00"         # Usamos la BOM de Junio, compatible
+coreKtx = "1.13.1"                # Bajado de 1.17.0
+datastorePreferences = "1.1.1"    # Actualizado a 1.1.1 (o 1.1.7 si lo tenías)
+espressoCore = "3.6.1"            # Actualizado
 junit = "4.13.2"
-junitVersion = "1.3.0"
-# 3. Versión de Lifecycle estable y unificada
-lifecycle = "2.8.0"
-# 4. Versión de Navigation estable
-navigationCompose = "2.7.7"
+junitVersion = "1.2.1"            # Actualizado
+lifecycle = "2.8.0"               # Bajado de 2.9.4
+navigationCompose = "2.7.7"       # Bajado de 2.9.5 (estable)
 room = "2.6.1"
 hiltNavigationCompose = "1.2.0"
 coroutines = "1.8.0"
@@ -77,6 +74,5 @@ androidx-compose-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-te
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
-# 5. Plugins de KSP y Hilt
 kotlin-ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 hilt-android = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
