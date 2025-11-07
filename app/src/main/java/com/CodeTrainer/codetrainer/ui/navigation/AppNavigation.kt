@@ -5,44 +5,61 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.CodeTrainer.codetrainer.ui.features.exerciselist.ExerciseListRoute
+import com.CodeTrainer.codetrainer.ui.features.splash.SplashRoute // <-- 1. IMPORTAR
 
+// 1. Añadimos las nuevas rutas
 object Routes {
+    const val SPLASH = "splash" // <-- Nueva
+    const val LOGIN = "login"   // <-- Nueva
+    const val REGISTER = "register" // <-- Nueva
+
     const val EXERCISE_LIST = "exercise_list"
-    const val EXERCISE_DETAIL = "exercise_detail" // La usaremos después
-    const val DASHBOARD = "dashboard" // La usaremos después
+    // (quitamos "DASHBOARD" y "EXERCISE_DETAIL" por ahora para simplificar)
 }
 
-
-// (El objeto Routes que creamos antes va aquí arriba)
-
-// 2. Este es el "mapa" principal de tu aplicación
 @Composable
 fun AppNavigation() {
-    // 3. Crea el controlador que gestiona el estado de la navegación
     val navController = rememberNavController()
 
-    // 4. Define el "host" (el contenedor) de todas tus pantallas
     NavHost(
         navController = navController,
-        startDestination = Routes.EXERCISE_LIST // 5. La primera pantalla que se mostrará
+        startDestination = Routes.SPLASH // 2. ¡La nueva pantalla de inicio!
     ) {
 
-        // 6. Define la primera pantalla
+        // 3. NUEVA PANTALLA: Splash
+        composable(Routes.SPLASH) {
+            SplashRoute(
+                // Le pasamos lambdas para decirle qué hacer al terminar
+                onNavigateToLogin = {
+                    // Navega a Login y borra Splash del historial
+                    navController.navigate(Routes.LOGIN) {
+                        popUpTo(Routes.SPLASH) { inclusive = true }
+                    }
+                },
+                onNavigateToHome = {
+                    // Navega a Home y borra Splash del historial
+                    navController.navigate(Routes.EXERCISE_LIST) {
+                        popUpTo(Routes.SPLASH) { inclusive = true }
+                    }
+                }
+            )
+        }
+
+        // 4. NUEVA PANTALLA: Login (Placeholder)
+        composable(Routes.LOGIN) {
+            // TODO: Crear LoginScreen.kt
+            // LoginRoute(onNavigateToRegister = { ... }, onLoginSuccess = { ... })
+        }
+
+        // 5. NUEVA PANTALLA: Register (Placeholder)
+        composable(Routes.REGISTER) {
+            // TODO: Crear RegisterScreen.kt
+            // RegisterRoute(onRegisterSuccess = { ... })
+        }
+
+        // 6. Pantalla de Lista de Ejercicios (ya la teníamos)
         composable(Routes.EXERCISE_LIST) {
-            // Llama al Composable "Route" que creamos,
-            // Hilt se encargará de proveer el ViewModel.
             ExerciseListRoute()
         }
-
-        /*
-        // 7. Así es como añadiremos más pantallas en el futuro:
-        composable(Routes.DASHBOARD) {
-            // DashboardRoute()
-        }
-
-        composable(Routes.EXERCISE_DETAIL) {
-            // ExerciseDetailRoute()
-        }
-        */
     }
 }
