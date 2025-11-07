@@ -5,6 +5,7 @@ plugins {
     alias(libs.plugins.kotlin.ksp)
     // 1. Plugin de Hilt añadido
     alias(libs.plugins.hilt.android)
+    alias(libs.plugins.google.services) // <-- ¡ASEGÚRATE DE QUE ESTÉ AQUÍ!
 }
 
 android {
@@ -53,6 +54,15 @@ android {
 }
 
 dependencies {
+    // ...
+    // --- FIREBASE ---
+    implementation(platform(libs.firebase.bom)) // <-- AÑADE ESTA
+    implementation(libs.firebase.auth.ktx)      // <-- AÑADE ESTA
+    implementation(libs.firebase.analytics.ktx) // <-- AÑADE ESTA
+
+    // --- Pruebas (Testing) ---
+    // ...
+
     // 6. Archivo de dependencias limpio y completo
 
     // --- Core y UI de Jetpack Compose ---

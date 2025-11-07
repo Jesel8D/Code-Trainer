@@ -7,4 +7,6 @@ plugins {
     //Plugins añadidos para KSP y Hilt
     alias(libs.plugins.kotlin.ksp) apply false
     alias(libs.plugins.hilt.android) apply false
+
+    alias(libs.plugins.google.services) apply false // <-- ¡ASEGÚRATE DE QUE ESTÉ AQUÍ!
 }

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "626522292621",
+    "project_id": "codetrainer-78846",
+    "storage_bucket": "codetrainer-78846.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:626522292621:android:96cdcbe3d5b6a19590fdc4",
+        "android_client_info": {
+          "package_name": "com.CodeTrainer.codetrainer"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBa_ZrdaTDRVlSlUyyzYRj9VpLlAOVhm-s"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
