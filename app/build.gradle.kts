@@ -59,7 +59,8 @@ dependencies {
     implementation(platform(libs.firebase.bom)) // <-- AÑADE ESTA
     implementation(libs.firebase.auth.ktx)      // <-- AÑADE ESTA
     implementation(libs.firebase.analytics.ktx) // <-- AÑADE ESTA
-
+    implementation(libs.firebase.appcheck.playintegrity)
+// Add the dependencies for the App Check libraries
     // --- Pruebas (Testing) ---
     // ...
 

@@ -5,16 +5,16 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.CodeTrainer.codetrainer.ui.features.exerciselist.ExerciseListRoute
-import com.CodeTrainer.codetrainer.ui.features.splash.SplashRoute // <-- 1. IMPORTAR
+import com.CodeTrainer.codetrainer.ui.features.login.LoginRoute
+import com.CodeTrainer.codetrainer.ui.features.register.RegisterRoute
+import com.CodeTrainer.codetrainer.ui.features.splash.SplashRoute
+import okhttp3.Route
 
-// 1. Añadimos las nuevas rutas
 object Routes {
-    const val SPLASH = "splash" // <-- Nueva
-    const val LOGIN = "login"   // <-- Nueva
-    const val REGISTER = "register" // <-- Nueva
-
+    const val SPLASH = "splash"
+    const val LOGIN = "login"
+    const val REGISTER = "register"
     const val EXERCISE_LIST = "exercise_list"
-    // (quitamos "DASHBOARD" y "EXERCISE_DETAIL" por ahora para simplificar)
 }
 
 @Composable
@@ -23,21 +23,18 @@ fun AppNavigation() {
 
     NavHost(
         navController = navController,
-        startDestination = Routes.SPLASH // 2. ¡La nueva pantalla de inicio!
+        startDestination = Routes.SPLASH
     ) {
 
-        // 3. NUEVA PANTALLA: Splash
+        // Pantalla Splash
         composable(Routes.SPLASH) {
             SplashRoute(
-                // Le pasamos lambdas para decirle qué hacer al terminar
                 onNavigateToLogin = {
-                    // Navega a Login y borra Splash del historial
                     navController.navigate(Routes.LOGIN) {
                         popUpTo(Routes.SPLASH) { inclusive = true }
                     }
                 },
                 onNavigateToHome = {
-                    // Navega a Home y borra Splash del historial
                     navController.navigate(Routes.EXERCISE_LIST) {
                         popUpTo(Routes.SPLASH) { inclusive = true }
                     }
@@ -45,19 +42,39 @@ fun AppNavigation() {
             )
         }
 
-        // 4. NUEVA PANTALLA: Login (Placeholder)
+        // --- ¡AQUÍ CONECTAMOS LA PANTALLA DE LOGIN! ---
         composable(Routes.LOGIN) {
-            // TODO: Crear LoginScreen.kt
-            // LoginRoute(onNavigateToRegister = { ... }, onLoginSuccess = { ... })
+            LoginRoute(
+                onNavigateToRegister = {
+                    // Navega a la pantalla de registro
+                    navController.navigate(Routes.REGISTER)
+                },
+                onLoginSuccess = {
+                    // Navega a la lista y borra TODO el historial de auth
+                    navController.navigate(Routes.EXERCISE_LIST) {
+                        popUpTo(Routes.LOGIN) { inclusive = true }
+                    }
+                }
+            )
         }
 
-        // 5. NUEVA PANTALLA: Register (Placeholder)
+        // --- ¡AQUÍ CONECTAMOS LA PANTALLA DE REGISTRO! ---
         composable(Routes.REGISTER) {
-            // TODO: Crear RegisterScreen.kt
-            // RegisterRoute(onRegisterSuccess = { ... })
+            RegisterRoute(
+                onNavigateBack = {
+                    navController.popBackStack() // Regresa a la pantalla anterior (Login)
+                },
+                //Existo, navega a la home y limpia todo el historial de auth
+                onRegisterSuccess = {
+                    //En caso de exito, navega a la gome y limpia todo el historial de auth
+                    navController.navigate(Routes.EXERCISE_LIST) {
+                        popUpTo(Routes.LOGIN) { inclusive = true } //Borra login y register
+                    }
+                }
+            )
         }
 
-        // 6. Pantalla de Lista de Ejercicios (ya la teníamos)
+        // Pantalla de Lista de Ejercicios
         composable(Routes.EXERCISE_LIST) {
             ExerciseListRoute()
         }
