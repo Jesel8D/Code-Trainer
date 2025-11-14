@@ -9,6 +9,7 @@ import com.CodeTrainer.codetrainer.data.local.entity.ProgressEntity
 import com.CodeTrainer.codetrainer.data.local.entity.StatsEntity
 import com.CodeTrainer.codetrainer.data.local.entity.TipEntity
 import com.CodeTrainer.codetrainer.domain.model.*
+import com.google.firebase.auth.FirebaseUser
 
 // --- Mappers de Ejercicio y Progreso ---
 
@@ -81,5 +82,14 @@ fun TipEntity.toDomain(): Tip {
         id = this.id,
         category = this.category,
         content = this.content
+    )
+}
+
+
+private fun FirebaseUser.toAuthUser(): AuthUser {
+    return AuthUser(
+        uid = this.uid,
+        email = this.email,
+        displayName = this.displayName // <-- ¡AÑADE ESTA LÍNEA!
     )
 }

@@ -12,6 +12,6 @@ sealed class AuthResult<out T> {
 interface AuthRepository {
     fun getCurrentUser(): AuthUser?
     suspend fun login(email: String, password: String): AuthResult<AuthUser>
-    suspend fun register(email: String, password: String): AuthResult<AuthUser>
+    suspend fun register(email: String, password: String, name: String): AuthResult<AuthUser> // <-- ESTA ES LA NUEVA
     suspend fun logout()
 }

@@ -57,7 +57,8 @@ class RegisterViewModel @Inject constructor(
 
             val result = registerUseCase(
                 email = _uiState.value.email,
-                password = _uiState.value.password
+                password = _uiState.value.password,
+                name = _uiState.value.name
             )
 
             when (result) {
