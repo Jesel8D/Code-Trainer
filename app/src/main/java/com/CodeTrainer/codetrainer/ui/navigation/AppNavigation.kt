@@ -8,13 +8,16 @@ import com.CodeTrainer.codetrainer.ui.features.exerciselist.ExerciseListRoute
 import com.CodeTrainer.codetrainer.ui.features.login.LoginRoute
 import com.CodeTrainer.codetrainer.ui.features.register.RegisterRoute
 import com.CodeTrainer.codetrainer.ui.features.splash.SplashRoute
-import okhttp3.Route
+import com.CodeTrainer.codetrainer.ui.features.dashboard.DashboardRoute
 
 object Routes {
     const val SPLASH = "splash"
     const val LOGIN = "login"
     const val REGISTER = "register"
+
+    const val DASHBOARD = "dashboard"
     const val EXERCISE_LIST = "exercise_list"
+
 }
 
 @Composable
@@ -35,8 +38,11 @@ fun AppNavigation() {
                     }
                 },
                 onNavigateToHome = {
-                    navController.navigate(Routes.EXERCISE_LIST) {
-                        popUpTo(Routes.SPLASH) { inclusive = true }
+                    // Cambiamos el destino a vista 'DASHBOARD'
+                    navController.navigate(Routes.DASHBOARD) {
+                        popUpTo(Routes.SPLASH) {
+                            inclusive = true
+                        }
                     }
                 }
             )
@@ -50,9 +56,11 @@ fun AppNavigation() {
                     navController.navigate(Routes.REGISTER)
                 },
                 onLoginSuccess = {
-                    // Navega a la lista y borra TODO el historial de auth
-                    navController.navigate(Routes.EXERCISE_LIST) {
-                        popUpTo(Routes.LOGIN) { inclusive = true }
+                    //Cambiamos a vista 'DASHBOARD'
+                    navController.navigate(Routes.DASHBOARD) {
+                        popUpTo(Routes.LOGIN) {
+                            inclusive = true
+                        }
                     }
                 }
             )
@@ -66,9 +74,11 @@ fun AppNavigation() {
                 },
                 //Existo, navega a la home y limpia todo el historial de auth
                 onRegisterSuccess = {
-                    //En caso de exito, navega a la gome y limpia todo el historial de auth
-                    navController.navigate(Routes.EXERCISE_LIST) {
-                        popUpTo(Routes.LOGIN) { inclusive = true } //Borra login y register
+                    // Cambiamos el destino a 'DASHBOARD'
+                    navController.navigate(Routes.DASHBOARD) {
+                        popUpTo(Routes.LOGIN) {
+                            inclusive = true
+                        }
                     }
                 }
             )
@@ -78,5 +88,21 @@ fun AppNavigation() {
         composable(Routes.EXERCISE_LIST) {
             ExerciseListRoute()
         }
+
+        //Nuevo composable para DASHBOARD
+        composable(Routes.DASHBOARD) {
+            DashboardRoute(
+                onNavigateToExercises = {
+                    navController.navigate(Routes.EXERCISE_LIST)
+                }
+            )
+        }
+
+        // Esta pantalla se mantiene, ahora se accede desde el Dashboard
+        composable(Routes.EXERCISE_LIST) {
+            ExerciseListRoute()
+        }
+
+
     }
 }
