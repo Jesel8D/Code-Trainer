@@ -2,54 +2,108 @@ package com.CodeTrainer.codetrainer.ui.features.dashboard
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.CodeTrainer.codetrainer.domain.model.AuthUser
-import com.CodeTrainer.codetrainer.domain.model.ExerciseDetails
-import com.CodeTrainer.codetrainer.domain.model.Stats
+import com.CodeTrainer.codetrainer.domain.model.ProgressStatus
 import com.CodeTrainer.codetrainer.domain.usecase.GetCurrentUserUseCase
-import com.CodeTrainer.codetrainer.domain.usecase.GetPendingExercisesUseCase
+import com.CodeTrainer.codetrainer.domain.usecase.GetExercisesUseCase
+import com.CodeTrainer.codetrainer.domain.usecase.GetRandomTipUseCase
 import com.CodeTrainer.codetrainer.domain.usecase.GetStatsUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+import java.util.Calendar
 import javax.inject.Inject
-
-// 1. El estado que describe la UI del Dashboard
-data class DashboardUiState(
-    val isLoading: Boolean = true,
-    val user: AuthUser? = null,
-    val stats: Stats? = null,
-    val pendingExercises: List<ExerciseDetails> = emptyList()
-)
 
 @HiltViewModel
 class DashboardViewModel @Inject constructor(
-    // 2. Inyectamos TODOS los casos de uso que necesitamos
-    getCurrentUserUseCase: GetCurrentUserUseCase,
-    getStatsUseCase: GetStatsUseCase,
-    getPendingExercisesUseCase: GetPendingExercisesUseCase
+    private val getCurrentUserUseCase: GetCurrentUserUseCase,
+    private val getStatsUseCase: GetStatsUseCase,
+    private val getExercisesUseCase: GetExercisesUseCase,
+    private val getRandomTipUseCase: GetRandomTipUseCase
 ) : ViewModel() {
 
-    // 3. Usamos "combine" para unir los 3 Flujos de datos en 1 solo UiState
-    val uiState: StateFlow<DashboardUiState> = combine(
-        getStatsUseCase(),
-        getPendingExercisesUseCase()
-    ) { stats, pendingExercises ->
-        // 4. Cada vez que 'stats' O 'pendingExercises' cambien,
-        //    se creará un nuevo estado
-        DashboardUiState(
-            isLoading = false,
-            user = getCurrentUserUseCase(), // Obtenemos el usuario actual
-            stats = stats,
-            pendingExercises = pendingExercises
-        )
-    }.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000L),
-        initialValue = DashboardUiState(isLoading = true) // Estado inicial
-    )
+    private val _uiState = MutableStateFlow(DashboardUiState())
+    val uiState: StateFlow<DashboardUiState> = _uiState.asStateFlow()
 
-    // NOTA: 'getCurrentUserUseCase' no es un Flow, así que lo llamamos
-    // directamente dentro del 'combine'.
+    init {
+        loadDashboardData()
+    }
+
+    private fun loadDashboardData() {
+        viewModelScope.launch {
+            try {
+                // Obtener usuario actual
+                val currentUser = getCurrentUserUseCase()
+                val userName = currentUser?.email?.substringBefore("@") ?: "Usuario"
+                val userEmail = currentUser?.email ?: ""
+
+                // Obtener tip aleatorio
+                val tip = getRandomTipUseCase()
+
+                // Combinar flows de stats y ejercicios
+                combine(
+                    getStatsUseCase(),
+                    getExercisesUseCase()
+                ) { stats, exercises ->
+                    // Filtrar ejercicios pendientes (máximo 5)
+                    val pending = exercises
+                        .filter { it.progress?.status != ProgressStatus.COMPLETED }
+                        .take(5)
+
+                    // Calcular ejercicios completados esta semana
+                    val weeklyProgress = calculateWeeklyProgress(exercises)
+
+                    DashboardUiState(
+                        isLoading = false,
+                        userName = userName,
+                        userEmail = userEmail,
+                        stats = stats,
+                        weeklyProgress = weeklyProgress,
+                        pendingExercises = pending,
+                        dailyTip = tip,
+                        error = null
+                    )
+                }
+                    .catch { e ->
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            error = e.message ?: "Error desconocido"
+                        )
+                    }
+                    .collect { newState ->
+                        _uiState.value = newState
+                    }
+
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    error = e.message ?: "Error al cargar datos"
+                )
+            }
+        }
+    }
+
+    private fun calculateWeeklyProgress(exercises: List<com.CodeTrainer.codetrainer.domain.model.ExerciseDetails>): Int {
+        val calendar = Calendar.getInstance()
+        calendar.set(Calendar.DAY_OF_WEEK, calendar.firstDayOfWeek)
+        calendar.set(Calendar.HOUR_OF_DAY, 0)
+        calendar.set(Calendar.MINUTE, 0)
+        calendar.set(Calendar.SECOND, 0)
+        calendar.set(Calendar.MILLISECOND, 0)
+        val startOfWeek = calendar.timeInMillis
+
+        return exercises.count { exerciseDetail ->
+            val progress = exerciseDetail.progress
+            progress?.status == ProgressStatus.COMPLETED &&
+                    (progress.completedAt ?: 0) >= startOfWeek
+        }
+    }
+
+    fun refreshDashboard() {
+        _uiState.value = _uiState.value.copy(isLoading = true)
+        loadDashboardData()
+    }
 }

@@ -1,202 +1,432 @@
 package com.CodeTrainer.codetrainer.ui.features.dashboard
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.BarChart
-import androidx.compose.material.icons.filled.ListAlt
-import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.hilt.navigation.compose.hiltViewModel
-// import androidx.lifecycle.compose.collectAsStateWithLifecycle // <-- CAMBIO: Esta línea se elimina
-import androidx.compose.runtime.collectAsState // <-- CAMBIO: Añadimos esta
 import com.CodeTrainer.codetrainer.domain.model.ExerciseDetails
-import com.CodeTrainer.codetrainer.domain.model.Stats
+import com.CodeTrainer.codetrainer.domain.model.ProgressStatus
+import com.CodeTrainer.codetrainer.domain.model.Tip
 
-// 1. La "Ruta" (Route) que Hilt y Navegación llaman
-@Composable
-fun DashboardRoute(
-    viewModel: DashboardViewModel = hiltViewModel(),
-    onNavigateToExercises: () -> Unit
-) {
-    // 3. ¡AQUÍ ESTÁ EL CAMBIO!
-    // val uiState by viewModel.uiState.collectAsStateWithLifecycle() // <-- ESTA LÍNEA CRASHEA
-    val uiState by viewModel.uiState.collectAsState() // <-- USAMOS ESTA EN SU LUGAR
-
-    DashboardScreen(
-        uiState = uiState,
-        onNavigateToExercises = onNavigateToExercises
-    )
-}
-
-// 2. La Pantalla (Screen) "tonta" que solo pinta el estado
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(
     uiState: DashboardUiState,
-    onNavigateToExercises: () -> Unit
+    onNavigateToExercises: () -> Unit,
+    onNavigateToHelp: () -> Unit,
+    onRefresh: () -> Unit
 ) {
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("Dashboard") },
-                navigationIcon = {
-                    IconButton(onClick = { /* TODO: Abrir Drawer */ }) {
-                        Icon(Icons.Default.Menu, contentDescription = "Menú")
-                    }
-                },
                 actions = {
-                    IconButton(onClick = { /* TODO: Abrir Notificaciones */ }) {
-                        Icon(Icons.Default.Notifications, contentDescription = "Notificaciones")
+                    IconButton(onClick = onNavigateToHelp) {
+                        Icon(
+                            imageVector = Icons.Default.HelpOutline,
+                            contentDescription = "Ayuda"
+                        )
                     }
                 }
             )
-        },
-        // TODO: Añadir el BottomNavigationBar
+        }
     ) { paddingValues ->
-
-        if (uiState.isLoading) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
+        when {
+            uiState.isLoading -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
             }
-        } else {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-                    .padding(horizontal = 16.dp)
-                    .verticalScroll(rememberScrollState())
-            ) {
-                Spacer(modifier = Modifier.height(16.dp))
+            uiState.error != null -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        Text(
+                            text = "Error: ${uiState.error}",
+                            color = MaterialTheme.colorScheme.error
+                        )
+                        Button(onClick = onRefresh) {
+                            Text("Reintentar")
+                        }
+                    }
+                }
+            }
+            else -> {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    // Saludo
+                    item {
+                        GreetingCard(userName = uiState.userName)
+                    }
 
-                // Saludo "Hola, Alex"
-                val userName = uiState.user?.displayName?.split(" ")?.first() ?: "Usuario"
+                    // Estadísticas rápidas
+                    item {
+                        QuickStatsCard(uiState = uiState)
+                    }
+
+                    // Progreso semanal
+                    item {
+                        WeeklyProgressCard(weeklyProgress = uiState.weeklyProgress)
+                    }
+
+                    // Tip del día
+                    if (uiState.dailyTip != null) {
+                        item {
+                            DailyTipCard(tip = uiState.dailyTip)
+                        }
+                    }
+
+                    // Ejercicios pendientes
+                    if (uiState.pendingExercises.isNotEmpty()) {
+                        item {
+                            Text(
+                                text = "Ejercicios pendientes",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+
+                        items(uiState.pendingExercises) { exercise ->
+                            PendingExerciseCard(
+                                exercise = exercise,
+                                onClick = onNavigateToExercises
+                            )
+                        }
+                    } else {
+                        item {
+                            AllCompletedCard()
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun GreetingCard(userName: String) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "Hola, $userName",
-                    style = MaterialTheme.typography.headlineMedium,
+                    text = "¡Hola, $userName!",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "¿Listo para practicar hoy?",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            }
+            Icon(
+                imageVector = Icons.Default.WavingHand,
+                contentDescription = null,
+                modifier = Modifier.size(48.dp),
+                tint = MaterialTheme.colorScheme.onPrimaryContainer
+            )
+        }
+    }
+}
+
+@Composable
+private fun QuickStatsCard(uiState: DashboardUiState) {
+    Card(
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            Text(
+                text = "Tus estadísticas",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                StatItem(
+                    icon = Icons.Default.CheckCircle,
+                    value = uiState.stats.totalExercisesCompleted.toString(),
+                    label = "Completados"
+                )
+                StatItem(
+                    icon = Icons.Default.LocalFireDepartment,
+                    value = uiState.stats.dailyStreak.toString(),
+                    label = "Racha de días"
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun StatItem(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    value: String,
+    label: String
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            modifier = Modifier.size(32.dp),
+            tint = MaterialTheme.colorScheme.primary
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+@Composable
+private fun WeeklyProgressCard(weeklyProgress: Int) {
+    Card(
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Progreso semanal",
+                    style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                // Card de Progreso Semanal
-                StatsCard(
-                    icon = Icons.Default.BarChart,
-                    title = "Progreso Semanal",
-                    stats = uiState.stats,
-                    onClick = onNavigateToExercises
+                Icon(
+                    imageVector = Icons.Default.CalendarToday,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
                 )
+            }
+            Spacer(modifier = Modifier.height(12.dp))
 
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Card de Ejercicios Pendientes
-                PendingCard(
-                    icon = Icons.Default.ListAlt,
-                    title = "Ejercicios Pendientes",
-                    pendingExercises = uiState.pendingExercises,
-                    onClick = onNavigateToExercises
+            Row(
+                verticalAlignment = Alignment.Bottom,
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    text = weeklyProgress.toString(),
+                    style = MaterialTheme.typography.displaySmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    text = "ejercicios esta semana",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 4.dp)
                 )
             }
         }
     }
 }
 
-// 3. El Composable para la Card de "Progreso Semanal"
 @Composable
-fun StatsCard(
-    icon: ImageVector,
-    title: String,
-    stats: Stats?,
-    onClick: () -> Unit
-) {
+private fun DailyTipCard(tip: Tip) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.secondaryContainer
+        )
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(40.dp)
-                )
-                Spacer(modifier = Modifier.width(12.dp))
-                Column {
-                    Text(text = title, style = MaterialTheme.typography.titleLarge)
-                    val exercisesText = stats?.totalExercisesCompleted ?: 0
-                    val streakText = stats?.dailyStreak ?: 0
-                    Text(
-                        text = "Ejercicios completados: $exercisesText/10, racha: $streakText días",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
-            }
-            Spacer(modifier = Modifier.height(16.dp))
-            Button(
-                onClick = onClick,
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp)
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Text("Ver ejercicios")
+                Icon(
+                    imageVector = Icons.Default.Lightbulb,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+                Text(
+                    text = "Tip del día",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(MaterialTheme.colorScheme.surface)
+                    .padding(12.dp)
+            ) {
+                Text(
+                    text = tip.content,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+
+            if (tip.category.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(8.dp))
+                AssistChip(
+                    onClick = { },
+                    label = { Text(tip.category) }
+                )
             }
         }
     }
 }
 
-// 4. El Composable para la Card de "Ejercicios Pendientes"
 @Composable
-fun PendingCard(
-    icon: ImageVector,
-    title: String,
-    pendingExercises: List<ExerciseDetails>,
+private fun PendingExerciseCard(
+    exercise: ExerciseDetails,
     onClick: () -> Unit
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(40.dp)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = exercise.exercise.title,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold
                 )
-                Spacer(modifier = Modifier.width(12.dp))
-                Column {
-                    Text(text = title, style = MaterialTheme.typography.titleLarge)
-                    Text(
-                        text = "${pendingExercises.size} ejercicios por completar",
-                        style = MaterialTheme.typography.bodyMedium
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    AssistChip(
+                        onClick = { },
+                        label = {
+                            Text(
+                                text = exercise.exercise.language,
+                                style = MaterialTheme.typography.labelSmall
+                            )
+                        }
+                    )
+                    AssistChip(
+                        onClick = { },
+                        label = {
+                            Text(
+                                text = exercise.exercise.level,
+                                style = MaterialTheme.typography.labelSmall
+                            )
+                        }
                     )
                 }
             }
-            Spacer(modifier = Modifier.height(16.dp))
-            Button(
-                onClick = onClick,
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Text("Ver ejercicios")
-            }
+            Icon(
+                imageVector = Icons.Default.ChevronRight,
+                contentDescription = "Ir al ejercicio",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
+private fun AllCompletedCard() {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.tertiaryContainer
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Icon(
+                imageVector = Icons.Default.EmojiEvents,
+                contentDescription = null,
+                modifier = Modifier.size(48.dp),
+                tint = MaterialTheme.colorScheme.onTertiaryContainer
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "¡Felicitaciones!",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onTertiaryContainer
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "Has completado todos los ejercicios disponibles",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onTertiaryContainer
+            )
         }
     }
 }

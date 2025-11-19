@@ -5,40 +5,92 @@ import androidx.lifecycle.viewModelScope
 import com.CodeTrainer.codetrainer.domain.model.ExerciseDetails
 import com.CodeTrainer.codetrainer.domain.usecase.GetExercisesUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-// 1. Anotamos con @HiltViewModel para que Hilt sepa cómo crearlo
+data class ExerciseListUiState(
+    val isLoading: Boolean = true,
+    val exercises: List<ExerciseDetails> = emptyList(),
+    val filteredExercises: List<ExerciseDetails> = emptyList(),
+    val error: String? = null,
+    val selectedLanguage: String = "Todos",
+    val selectedLevel: String = "Todos"
+)
+
 @HiltViewModel
 class ExerciseListViewModel @Inject constructor(
-    // 2. Inyectamos nuestro Caso de Uso
-    getExercisesUseCase: GetExercisesUseCase
+    private val getExercisesUseCase: GetExercisesUseCase
 ) : ViewModel() {
 
-    // 3. Definimos un "Estado de UI" (UiState)
-    //    Esto representa todo lo que la pantalla puede necesitar saber.
-    val uiState: StateFlow<ExerciseListUiState> =
-        // 4. Llamamos al Caso de Uso (que devuelve un Flow)
-        getExercisesUseCase()
-            .map { exercises ->
-                // 5. Transformamos la lista de datos en un estado de UI
-                ExerciseListUiState.Success(exercises)
-            }
-            // 6. Convertimos el "Flow" frío en un "StateFlow" caliente.
-            //    Esto "guarda" el último estado y lo comparte con la UI.
-            .stateIn(
-                scope = viewModelScope, // El scope del ViewModel
-                started = SharingStarted.WhileSubscribed(5000L), // Cómo/cuándo empezar a "escuchar"
-                initialValue = ExerciseListUiState.Loading // El estado inicial
-            )
-}
+    private val _uiState = MutableStateFlow(ExerciseListUiState())
+    val uiState: StateFlow<ExerciseListUiState> = _uiState.asStateFlow()
 
-// 7. Definimos los posibles estados de nuestra pantalla
-sealed interface ExerciseListUiState {
-    data object Loading : ExerciseListUiState
-    data class Success(val exercises: List<ExerciseDetails>) : ExerciseListUiState
-    data class Error(val message: String) : ExerciseListUiState
+    init {
+        loadExercises()
+    }
+
+    private fun loadExercises() {
+        viewModelScope.launch {
+            getExercisesUseCase()
+                .catch { e ->
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        error = e.message ?: "Error desconocido"
+                    )
+                }
+                .collect { exercises ->
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        exercises = exercises,
+                        filteredExercises = exercises,
+                        error = null
+                    )
+                    // Aplicar filtros actuales si existen
+                    applyFilters()
+                }
+        }
+    }
+
+    fun setLanguageFilter(language: String) {
+        _uiState.value = _uiState.value.copy(selectedLanguage = language)
+        applyFilters()
+    }
+
+    fun setLevelFilter(level: String) {
+        _uiState.value = _uiState.value.copy(selectedLevel = level)
+        applyFilters()
+    }
+
+    fun clearFilters() {
+        _uiState.value = _uiState.value.copy(
+            selectedLanguage = "Todos",
+            selectedLevel = "Todos",
+            filteredExercises = _uiState.value.exercises
+        )
+    }
+
+    private fun applyFilters() {
+        val currentState = _uiState.value
+        var filtered = currentState.exercises
+
+        // Filtrar por lenguaje
+        if (currentState.selectedLanguage != "Todos") {
+            filtered = filtered.filter {
+                it.exercise.language == currentState.selectedLanguage
+            }
+        }
+
+        // Filtrar por nivel
+        if (currentState.selectedLevel != "Todos") {
+            filtered = filtered.filter {
+                it.exercise.level == currentState.selectedLevel
+            }
+        }
+
+        _uiState.value = currentState.copy(filteredExercises = filtered)
+    }
 }

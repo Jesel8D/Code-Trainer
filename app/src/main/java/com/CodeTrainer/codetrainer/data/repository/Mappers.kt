@@ -1,95 +1,79 @@
 package com.CodeTrainer.codetrainer.data.repository
 
-// Este archivo solo contendrá funciones de extensión para "traducir"
-// modelos de la capa DATA a modelos de la capa DOMAIN.
-
 import com.CodeTrainer.codetrainer.data.local.ExerciseWithProgress
 import com.CodeTrainer.codetrainer.data.local.entity.ExerciseEntity
 import com.CodeTrainer.codetrainer.data.local.entity.ProgressEntity
 import com.CodeTrainer.codetrainer.data.local.entity.StatsEntity
 import com.CodeTrainer.codetrainer.data.local.entity.TipEntity
+import com.CodeTrainer.codetrainer.data.local.entity.HelpTopicEntity
 import com.CodeTrainer.codetrainer.domain.model.*
-import com.google.firebase.auth.FirebaseUser
 
-// --- Mappers de Ejercicio y Progreso ---
-
-fun ExerciseEntity.toDomain(): Exercise {
-    return Exercise(
-        id = this.id,
-        title = this.title,
-        description = this.description,
-        language = this.language,
-        level = this.level,
-        solutionCode = this.solutionCode,
-        hint = this.hint
+fun ExerciseEntity.toDomain(): Exercise =
+    Exercise(
+        id = id,
+        title = title,
+        description = description,
+        language = language,
+        level = level,
+        solutionCode = solutionCode,
+        hint = hint
     )
-}
 
-fun ProgressEntity.toDomain(): Progress {
-    return Progress(
-        exerciseId = this.exerciseId,
-        status = if (this.status == "COMPLETED") ProgressStatus.COMPLETED else ProgressStatus.PENDING,
-        completedAt = this.completedAt,
-        score = this.score,
-        userSolution = this.userSolution
+fun ProgressEntity.toDomain(): Progress =
+    Progress(
+        exerciseId = exerciseId,
+        status = if (status == "COMPLETED") ProgressStatus.COMPLETED else ProgressStatus.PENDING,
+        completedAt = completedAt,
+        score = score,
+        userSolution = userSolution
     )
-}
 
-// Este es el traductor de la clase de relación
-fun ExerciseWithProgress.toDomain(): ExerciseDetails {
-    return ExerciseDetails(
-        exercise = this.exercise.toDomain(),
-        progress = this.progress?.toDomain() // El '?' es clave
+fun ExerciseWithProgress.toDomain(): ExerciseDetails =
+    ExerciseDetails(
+        exercise = exercise.toDomain(),
+        progress = progress?.toDomain()
     )
-}
 
-// Y el camino inverso para Guardar
-fun Progress.toEntity(): ProgressEntity {
-    return ProgressEntity(
-        exerciseId = this.exerciseId,
-        status = this.status.name, // .name convierte (COMPLETED -> "COMPLETED")
-        completedAt = this.completedAt,
-        score = this.score,
-        userSolution = this.userSolution,
-        id = 0 // Room se encargará de esto si es nuevo
+fun Progress.toEntity(): ProgressEntity =
+    ProgressEntity(
+        exerciseId = exerciseId,
+        status = status.name,
+        completedAt = completedAt,
+        score = score,
+        userSolution = userSolution,
+        id = 0
     )
-}
 
-
-// --- Mappers de Stats y Tips ---
-
-fun StatsEntity.toDomain(): Stats {
-    return Stats(
-        totalExercisesCompleted = this.totalExercisesCompleted,
-        totalTimeSpent = this.totalTimeSpent,
-        averageScore = this.averageScore,
-        dailyStreak = this.dailyStreak
+fun StatsEntity.toDomain(): Stats =
+    Stats(
+        totalExercisesCompleted = totalExercisesCompleted,
+        totalTimeSpent = totalTimeSpent,
+        averageScore = averageScore,
+        dailyStreak = dailyStreak
     )
-}
 
-fun Stats.toEntity(): StatsEntity {
-    return StatsEntity(
-        id = 1, // Siempre usamos el ID 1 para la única fila de stats
-        totalExercisesCompleted = this.totalExercisesCompleted,
-        totalTimeSpent = this.totalTimeSpent,
-        averageScore = this.averageScore,
-        dailyStreak = this.dailyStreak
+fun Stats.toEntity(): StatsEntity =
+    StatsEntity(
+        id = 1,
+        totalExercisesCompleted = totalExercisesCompleted,
+        totalTimeSpent = totalTimeSpent,
+        averageScore = averageScore,
+        dailyStreak = dailyStreak
     )
-}
 
-fun TipEntity.toDomain(): Tip {
-    return Tip(
-        id = this.id,
-        category = this.category,
-        content = this.content
+fun TipEntity.toDomain(): Tip =
+    Tip(
+        id = id,
+        category = category,
+        content = content
     )
-}
 
-
-private fun FirebaseUser.toAuthUser(): AuthUser {
-    return AuthUser(
-        uid = this.uid,
-        email = this.email,
-        displayName = this.displayName // <-- ¡AÑADE ESTA LÍNEA!
+// ACTUALIZADO: Mapper para HelpTopic
+fun HelpTopicEntity.toDomain(): HelpTopic =
+    HelpTopic(
+        id = id,
+        title = title,
+        content = content,
+        category = category,
+        topicOrder = topicOrder // CAMBIADO
     )
-}

@@ -8,7 +8,5 @@ import javax.inject.Inject
 class GetStatsUseCase @Inject constructor(
     private val repository: StatsRepository
 ) {
-    operator fun invoke(): Flow<Stats> {
-        return repository.getStats()
-    }
+    operator fun invoke(): Flow<Stats> = repository.getStats()
 }
