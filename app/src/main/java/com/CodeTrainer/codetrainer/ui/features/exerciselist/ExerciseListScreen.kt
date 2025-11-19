@@ -1,91 +1,295 @@
 package com.CodeTrainer.codetrainer.ui.features.exerciselist
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
-// import androidx.lifecycle.compose.collectAsStateWithLifecycle // <-- CAMBIO: Esta línea se elimina
-import androidx.compose.runtime.collectAsState // <-- CAMBIO: Añadimos esta
 import com.CodeTrainer.codetrainer.domain.model.ExerciseDetails
+import com.CodeTrainer.codetrainer.domain.model.ProgressStatus
 
-// 1. Este es el Composable "raíz" que llamará la Navegación
-@Composable
-fun ExerciseListRoute(
-    // 2. Hilt nos provee el ViewModel automáticamente
-    viewModel: ExerciseListViewModel = hiltViewModel()
-) {
-    // 3. Recolectamos el estado del ViewModel de forma segura
-    // val uiState by viewModel.uiState.collectAsStateWithLifecycle() // <-- CAMBIO: Esta línea crashea
-    val uiState by viewModel.uiState.collectAsState() // <-- CAMBIO: Usamos esta en su lugar
-
-    // 4. Pasamos el estado al Composable "tonto"
-    ExerciseListScreen(uiState = uiState)
-}
-
-// 5. Este es el Composable "tonto" (dumb). No sabe nada de ViewModels.
-//    Solo sabe cómo pintar un estado.
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ExerciseListScreen(
-    uiState: ExerciseListUiState
+    uiState: ExerciseListUiState,
+    onExerciseClick: (Int) -> Unit = {},
+    onLanguageFilterChange: (String) -> Unit = {},
+    onLevelFilterChange: (String) -> Unit = {},
+    onClearFilters: () -> Unit = {}
 ) {
+    var showFilters by remember { mutableStateOf(true) }
+
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text("Ejercicios") })
+            TopAppBar(
+                title = { Text("Ejercicios") },
+                actions = {
+                    IconButton(onClick = { showFilters = !showFilters }) {
+                        Icon(
+                            imageVector = Icons.Default.FilterList,
+                            contentDescription = if (showFilters) "Ocultar filtros" else "Mostrar filtros"
+                        )
+                    }
+                }
+            )
         }
     ) { paddingValues ->
-
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues),
-            contentAlignment = Alignment.Center
-        ) {
-            // 6. Decidimos qué pintar basándonos en el estado
-            when (uiState) {
-                is ExerciseListUiState.Loading -> {
+        when {
+            uiState.isLoading -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues),
+                    contentAlignment = Alignment.Center
+                ) {
                     CircularProgressIndicator()
                 }
-
-                is ExerciseListUiState.Success -> {
-                    // ¡Mostramos la lista!
-                    ExerciseList(exercises = uiState.exercises)
+            }
+            uiState.error != null -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Error: ${uiState.error}",
+                        color = MaterialTheme.colorScheme.error
+                    )
                 }
+            }
+            else -> {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues)
+                ) {
+                    // Sección de filtros
+                    if (showFilters) {
+                        FiltersSection(
+                            selectedLanguage = uiState.selectedLanguage,
+                            selectedLevel = uiState.selectedLevel,
+                            onLanguageChange = onLanguageFilterChange,
+                            onLevelChange = onLevelFilterChange,
+                            onClearFilters = onClearFilters
+                        )
+                        Divider()
+                    }
 
-                is ExerciseListUiState.Error -> {
-                    Text(text = "Error: ${uiState.message}")
+                    // Contador de resultados
+                    if (uiState.filteredExercises.isNotEmpty()) {
+                        Text(
+                            text = "${uiState.filteredExercises.size} ejercicio(s) encontrado(s)",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                        )
+                    }
+
+                    // Lista de ejercicios
+                    if (uiState.filteredExercises.isEmpty()) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Text(
+                                    text = "No hay ejercicios que coincidan con los filtros",
+                                    style = MaterialTheme.typography.bodyLarge
+                                )
+                                if (uiState.selectedLanguage != "Todos" || uiState.selectedLevel != "Todos") {
+                                    TextButton(onClick = onClearFilters) {
+                                        Text("Limpiar filtros")
+                                    }
+                                }
+                            }
+                        }
+                    } else {
+                        LazyColumn(
+                            contentPadding = PaddingValues(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            items(uiState.filteredExercises) { exerciseDetail ->
+                                ExerciseCard(
+                                    exerciseDetail = exerciseDetail,
+                                    onClick = { onExerciseClick(exerciseDetail.exercise.id) }
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }
     }
 }
 
-// 7. Un Composable simple para mostrar la lista
 @Composable
-fun ExerciseList(exercises: List<ExerciseDetails>, modifier: Modifier = Modifier) {
-    if (exercises.isEmpty()) {
-        Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text(text = "No hay ejercicios.")
+private fun FiltersSection(
+    selectedLanguage: String,
+    selectedLevel: String,
+    onLanguageChange: (String) -> Unit,
+    onLevelChange: (String) -> Unit,
+    onClearFilters: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        // Header de filtros
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Filtros",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+
+            if (selectedLanguage != "Todos" || selectedLevel != "Todos") {
+                TextButton(onClick = onClearFilters) {
+                    Text("Limpiar")
+                }
+            }
         }
-    } else {
-        LazyColumn(modifier = modifier.fillMaxSize()) {
-            items(exercises) { details ->
-                // TODO: Crear un Composable "ExerciseCard" bonito
-                Text(
-                    text = "${details.exercise.title} - ${details.progress?.status ?: "PENDING"}",
-                    modifier = Modifier.padding(16.dp)
+
+        // Filtro de lenguaje
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(
+                text = "Lenguaje",
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold
+            )
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                val languages = listOf("Todos", "Python", "C++")
+                items(languages.size) { index ->
+                    val language = languages[index]
+                    FilterChip(
+                        selected = selectedLanguage == language,
+                        onClick = { onLanguageChange(language) },
+                        label = { Text(language) }
+                    )
+                }
+            }
+        }
+
+        // Filtro de nivel
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(
+                text = "Dificultad",
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold
+            )
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                val levels = listOf("Todos", "Básico", "Intermedio", "Avanzado")
+                items(levels.size) { index ->
+                    val level = levels[index]
+                    FilterChip(
+                        selected = selectedLevel == level,
+                        onClick = { onLevelChange(level) },
+                        label = { Text(level) }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ExerciseCard(
+    exerciseDetail: ExerciseDetails,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = exerciseDetail.exercise.title,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = exerciseDetail.exercise.description,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 2
+                    )
+                }
+
+                if (exerciseDetail.progress?.status == ProgressStatus.COMPLETED) {
+                    Icon(
+                        imageVector = Icons.Default.CheckCircle,
+                        contentDescription = "Completado",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                AssistChip(
+                    onClick = { },
+                    label = { Text(exerciseDetail.exercise.language) },
+                    leadingIcon = {
+                        Text(
+                            text = when (exerciseDetail.exercise.language) {
+                                "Python" -> "🐍"
+                                "C++" -> "⚙️"
+                                else -> "💻"
+                            },
+                            style = MaterialTheme.typography.labelMedium
+                        )
+                    }
+                )
+                AssistChip(
+                    onClick = { },
+                    label = { Text(exerciseDetail.exercise.level) },
+                    colors = AssistChipDefaults.assistChipColors(
+                        containerColor = when (exerciseDetail.exercise.level) {
+                            "Básico" -> MaterialTheme.colorScheme.tertiaryContainer
+                            "Intermedio" -> MaterialTheme.colorScheme.secondaryContainer
+                            "Avanzado" -> MaterialTheme.colorScheme.errorContainer
+                            else -> MaterialTheme.colorScheme.surfaceVariant
+                        }
+                    )
                 )
             }
         }
