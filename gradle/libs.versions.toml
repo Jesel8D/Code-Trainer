@@ -1,6 +1,6 @@
 [versions]
 # --- Versiones del Proyecto ---
-agp = "8.4.1"
+agp = "8.13.1"
 kotlin = "2.0.0"
 ksp = "2.0.0-1.0.21"
 hilt = "2.51.1"
