@@ -3,19 +3,18 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.ksp)
-    // 1. Plugin de Hilt añadido
     alias(libs.plugins.hilt.android)
-    alias(libs.plugins.google.services) // <-- ¡ASEGÚRATE DE QUE ESTÉ AQUÍ!
+    alias(libs.plugins.google.services)
 }
 
 android {
     namespace = "com.CodeTrainer.codetrainer"
-    compileSdk = 34 // 2. SDK estable
+    compileSdk = 34
 
     defaultConfig {
         applicationId = "com.CodeTrainer.codetrainer"
         minSdk = 29
-        targetSdk = 34 // 3. SDK estable
+        targetSdk = 34
         versionCode = 1
         versionName = "1.0"
 
@@ -32,7 +31,6 @@ android {
         }
     }
     compileOptions {
-        // 4. Java 17 es el estándar moderno
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
@@ -43,7 +41,6 @@ android {
         compose = true
     }
     composeOptions {
-        // 5. Versión del compilador compatible con Kotlin 2.0.0
         kotlinCompilerExtensionVersion = "1.5.13"
     }
     packaging {
@@ -54,17 +51,12 @@ android {
 }
 
 dependencies {
-    // ...
     // --- FIREBASE ---
-    implementation(platform(libs.firebase.bom)) // <-- AÑADE ESTA
-    implementation(libs.firebase.auth.ktx)      // <-- AÑADE ESTA
-    implementation(libs.firebase.analytics.ktx) // <-- AÑADE ESTA
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.auth.ktx)
+    implementation(libs.firebase.analytics.ktx)
     implementation(libs.firebase.appcheck.playintegrity)
-// Add the dependencies for the App Check libraries
-    // --- Pruebas (Testing) ---
-    // ...
-
-    // 6. Archivo de dependencias limpio y completo
+    implementation("com.google.firebase:firebase-storage-ktx") // NUEVO: Firebase Storage
 
     // --- Core y UI de Jetpack Compose ---
     implementation(platform(libs.androidx.compose.bom))
@@ -91,20 +83,30 @@ dependencies {
     // --- Room (Base de Datos Local) ---
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
-    ksp(libs.androidx.room.compiler) // Procesador de anotaciones para Room
+    ksp(libs.androidx.room.compiler)
 
     // --- Hilt (Inyección de Dependencias) ---
     implementation(libs.hilt.android)
-    ksp(libs.hilt.compiler) // Procesador de anotaciones para Hilt
+    ksp(libs.hilt.compiler)
     implementation(libs.androidx.hilt.navigation.compose)
 
     // --- Coroutines (Asincronía) ---
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.coroutines.android)
 
-    // --- Otros (Coil, Datastore) ---
+    // --- Retrofit (API REST) --- NUEVO
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+    implementation("com.squareup.okhttp3:logging-interceptor:4.11.0")
+
+    // --- Coil para cargar imágenes --- ACTUALIZADO
     implementation(libs.coil.compose)
+
+    // --- DataStore ---
     implementation(libs.androidx.datastore.preferences)
+
+    // --- Permisos de cámara --- NUEVO
+    implementation("com.google.accompanist:accompanist-permissions:0.32.0")
 
     // --- Pruebas (Testing) ---
     testImplementation(libs.junit)

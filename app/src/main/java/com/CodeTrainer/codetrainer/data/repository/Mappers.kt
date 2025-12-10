@@ -8,7 +8,12 @@ import com.CodeTrainer.codetrainer.data.local.entity.ExerciseEntity
 import com.CodeTrainer.codetrainer.data.local.entity.ProgressEntity
 import com.CodeTrainer.codetrainer.data.local.entity.StatsEntity
 import com.CodeTrainer.codetrainer.data.local.entity.TipEntity
-import com.CodeTrainer.codetrainer.domain.model.*
+import com.CodeTrainer.codetrainer.domain.model.Exercise
+import com.CodeTrainer.codetrainer.domain.model.ExerciseDetails
+import com.CodeTrainer.codetrainer.domain.model.Progress
+import com.CodeTrainer.codetrainer.domain.model.ProgressStatus
+import com.CodeTrainer.codetrainer.domain.model.Stats
+import com.CodeTrainer.codetrainer.domain.model.Tip
 
 // --- Mappers de Ejercicio y Progreso ---
 
@@ -25,9 +30,16 @@ fun ExerciseEntity.toDomain(): Exercise {
 }
 
 fun ProgressEntity.toDomain(): Progress {
+    val statusEnum = when (this.status) {
+        "NOT_STARTED" -> ProgressStatus.NOT_STARTED
+        "IN_PROGRESS" -> ProgressStatus.IN_PROGRESS
+        "COMPLETED" -> ProgressStatus.COMPLETED
+        else -> ProgressStatus.NOT_STARTED
+    }
+
     return Progress(
         exerciseId = this.exerciseId,
-        status = if (this.status == "COMPLETED") ProgressStatus.COMPLETED else ProgressStatus.PENDING,
+        status = statusEnum,
         completedAt = this.completedAt,
         score = this.score,
         userSolution = this.userSolution
@@ -54,7 +66,6 @@ fun Progress.toEntity(): ProgressEntity {
     )
 }
 
-
 // --- Mappers de Stats y Tips ---
 
 fun StatsEntity.toDomain(): Stats {
@@ -78,7 +89,6 @@ fun Stats.toEntity(): StatsEntity {
 
 fun TipEntity.toDomain(): Tip {
     return Tip(
-        id = this.id,
         category = this.category,
         content = this.content
     )
